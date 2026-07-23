@@ -9,3 +9,5 @@ prophet
 xgboost
 feedparser
 requests
+statsmodels
+seaborn
