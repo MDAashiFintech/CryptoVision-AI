@@ -1,8 +1,4 @@
-# ONLY run this if the file is being run directly as a page
-if __name__ == "__main__":
-    st.set_page_config(page_title="FAQ", page_icon="❓", layout="wide")
-    st.title("❓ Frequently Asked Questions (FAQ)")
-    st.markdown("Find answers to common questions about the Crypto Analytics Hub...")
+
 
 
 import streamlit as st
@@ -14,6 +10,12 @@ from plotly.subplots import make_subplots
 import feedparser
 import re
 import os
+
+# ONLY run this if the file is being run directly as a page
+if __name__ == "__main__":
+    st.set_page_config(page_title="FAQ", page_icon="❓", layout="wide")
+    st.title("❓ Frequently Asked Questions (FAQ)")
+    st.markdown("Find answers to common questions about the Crypto Analytics Hub...")
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="FAQ", page_icon="❓", layout="wide")
