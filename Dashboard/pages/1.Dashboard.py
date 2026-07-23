@@ -80,7 +80,7 @@ except (ValueError, TypeError, NameError):
 st.markdown("---")
 
 # --- Load data for All Coins ---
-data = pd.read_csv("assets/crypto_enriched_ohlcv_cleaned_datasets.csv")
+data = pd.read_csv("Dashboard/assets/crypto_enriched_ohlcv_cleaned_datasets.csv")
 data["Date"] = pd.to_datetime(data["Date"])
 all_coins = sorted(data["Coin"].unique())
 
