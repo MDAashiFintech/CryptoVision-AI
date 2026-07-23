@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import feedparser
 import re
+from utils import load_all_data  # Using the centralized engine
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Crypto Top Stories", layout="wide", page_icon="📰")
@@ -11,15 +12,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Load representatives
-rep_df = pd.read_csv("assets/representative_coins.csv")
-representatives = rep_df["Representative_Coin"].tolist()
+# --- LOAD DATA VIA UTILS ---
+try:
+    data_dict = load_all_data()
+    representatives = data_dict["rep_coins"]
+    all_coins = data_dict["all_coins"]
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.stop()
 
-# Assume full coins list from your dataset CSV
-data = pd.read_csv("assets/crypto_enriched_ohlcv_cleaned_datasets.csv")
-all_coins = sorted(set(data["Coin"].unique()))
-
-# Fix: apply upper to string element after split
+# Process coin names for filtering
 all_coins_upper = sorted(set([c.split("-")[0].upper() for c in all_coins]))
 rep_coins_simple = [c.split("-")[0].upper() for c in representatives]
 
@@ -30,7 +32,7 @@ rss_urls = [
     "https://news.bitcoin.com/feed/",
 ]
 
-# UI: filter selection with explanation
+# UI: filter selection
 st.write("Filter news by cryptocurrency scope:")
 selected_filter = st.radio(
     "",
@@ -49,8 +51,7 @@ max_display = st.slider(
     "Number of news articles to display:", min_value=1, max_value=20, value=8, step=1
 )
 
-
-# Cache news fetch for 10 minutes to reduce load
+# Cache news fetch for 10 minutes
 @st.cache_data(ttl=600)
 def fetch_news(filter_coins):
     entries = []
@@ -77,35 +78,25 @@ def fetch_news(filter_coins):
                             image_url = link["href"]
                             break
                 if not image_url:
-                    matches = re.findall(
-                        r'<img[^>]+src="([^">]+)"', entry.get("summary", "")
-                    )
+                    matches = re.findall(r'<img[^>]+src="([^">]+)"', entry.get("summary", ""))
                     if matches:
                         image_url = matches[0]
                 if not image_url:
                     image_url = "https://cryptologos.cc/logos/all-crypto-logos.png"
+                
                 summary = entry.get("summary", "")
-                summary = re.sub(
-                    r"The post .+? appeared first on .+?(\.|\.\.\.|!| )*", "", summary
-                ).strip()
+                summary = re.sub(r"The post .+? appeared first on .+?(\.|\.\.\.|!| )*", "", summary).strip()
                 if len(summary) > 220:
                     summary = summary[:220] + "..."
-                entries.append(
-                    {
-                        "title": entry.title,
-                        "link": entry.link,
-                        "published": entry.get("published", "No date"),
-                        "summary": summary,
-                        "image": image_url,
-                    }
-                )
-    # Sort by published date descending if possible
-    try:
-        entries.sort(key=lambda e: e["published"], reverse=True)
-    except Exception:
-        pass
+                
+                entries.append({
+                    "title": entry.title,
+                    "link": entry.link,
+                    "published": entry.get("published", "No date"),
+                    "summary": summary,
+                    "image": image_url,
+                })
     return entries
-
 
 news = fetch_news(filter_coins)
 
@@ -119,9 +110,7 @@ card_style = """
     display: flex;
     align-items: flex-start;
 """
-scrollable_div = """
-<div style='max-height:480px; overflow-y:auto; padding:5px'>
-"""
+scrollable_div = "<div style='max-height:480px; overflow-y:auto; padding:5px'>"
 
 st.markdown(scrollable_div, unsafe_allow_html=True)
 
