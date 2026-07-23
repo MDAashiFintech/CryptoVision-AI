@@ -1,119 +1,109 @@
 import streamlit as st
-import re
 import time
 import os
 import sys
 
-# --- CLOUD PATH HACK ---
-# This allows Chatbot to import functions from FAQ.py on Streamlit Cloud
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
+# --- 1. CLOUD PATH HACK ---
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     import FAQ
     from FAQ import (
         load_all_data, load_and_process_all_metrics, get_model_leaderboard,
         plot_trend_chart, plot_moving_average_chart, get_top_correlations,
-        get_forecasted_high_low, get_best_purchase_sale, get_group_prediction,
-        get_confidence_level, fetch_top_stories, calculate_what_if, get_model_comparison,
+        get_forecast_logic, fetch_top_stories
     )
 except ImportError:
-    st.error("Engine Link Failure. Ensure Dashboard/pages/FAQ.py exists.")
+    st.error("Engine failure. Restarting...")
     st.stop()
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Crypto Analytics Chatbot", page_icon="🤖", layout="centered")
-st.title("🤖 Crypto Analytics Chatbot")
+# --- 2. PAGE CONFIG ---
+st.set_page_config(page_title="Crypto AI Chatbot", page_icon="🤖", layout="centered")
+st.title("🤖 Crypto Analytics Assistant")
 
-# --- Load all data ---
-try:
-    data_dict = load_all_data()
-    all_metrics_df = load_and_process_all_metrics()
-    main_df, rep_coins, all_coins, top_corr_df, latest_prices = (
-        data_dict["main_df"], data_dict["rep_coins"], data_dict["all_coins"],
-        data_dict["top_corr_df"], data_dict["latest_prices"],
-    )
-except Exception as e:
-    st.error(f"Data Load Error: {e}")
-    st.stop()
+# --- 3. DATA LOADING ---
+data = load_all_data()
+metrics = load_and_process_all_metrics()
 
-# --- FEATURE & SESSION SETUP ---
-ASSESSMENT_QUESTIONS = {
-    "Show Price Chart": "trend_controls",
-    "Find Correlations": "correlation_controls",
-    "Show Moving Average": "ma_controls",
-    "Predict High/Low": "high_low_controls",
-    "Best Time to Purchase/Sell": "best_time_controls",
-    "Predict Group Trend": "group_pred_controls",
-    "Get Model Confidence": "confidence_controls",
-    "Display Top Stories": "top_stories_action",
-    "Analyze Potential Profit": "what_if_controls",
-    "Compare Model Performance": "model_comp_main",
-}
-
+# --- 4. SESSION STATE ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Hi! I am your Crypto AI Assistant. How can I help you?", "buttons": list(ASSESSMENT_QUESTIONS.keys())}]
-if "awaiting_controls" not in st.session_state: st.session_state.awaiting_controls = None
-if "what_if_step" not in st.session_state: st.session_state.what_if_step = 0
-if "what_if_data" not in st.session_state: st.session_state.what_if_data = {}
+    st.session_state.messages = [{"role": "assistant", "content": "Hi! I am your Crypto AI Assistant. Choose an analysis to begin:", "type": "text", "buttons": ["Show Price Chart", "Find Correlations", "Predict High/Low", "Analyze Potential Profit", "Compare Model Performance"]}]
+if "active_tool" not in st.session_state: st.session_state.active_tool = None
+if "step" not in st.session_state: st.session_state.step = 0
 
-# --- CORE CHAT LOGIC ---
-def process_user_input(prompt=None, button_label=None):
-    user_text = button_label if button_label else prompt
-    if not user_text: return
-    st.session_state.messages.append({"role": "user", "content": user_text})
-    
-    with st.spinner("Processing..."):
-        time.sleep(0.3)
-        st.session_state.awaiting_controls = None
+def add_msg(role, content, type="text"):
+    st.session_state.messages.append({"role": role, "content": content, "type": type})
+
+def process_btn(label):
+    add_msg("user", label)
+    st.session_state.active_tool = label
+    if label == "Compare Model Performance":
+        df, report = get_model_leaderboard(metrics)
+        add_msg("assistant", report)
+        add_msg("assistant", df, "df")
+        st.session_state.active_tool = None
+    elif label == "Analyze Potential Profit":
+        st.session_state.step = 1
+        add_msg("assistant", "Great! Which coin are you interested in?")
+    else:
+        add_msg("assistant", f"I'm ready to help with **{label}**. Please use the controls below.")
+
+# --- 5. UI DISPLAY ---
+for i, m in enumerate(st.session_state.messages):
+    with st.chat_message(m["role"]):
+        if m["type"] == "text": st.markdown(m["content"])
+        elif m["type"] == "plot": st.plotly_chart(m["content"], use_container_width=True)
+        elif m["type"] == "df": st.dataframe(m["content"], use_container_width=True)
         
-        if user_text in ASSESSMENT_QUESTIONS:
-            action = ASSESSMENT_QUESTIONS[user_text]
-            if action == "top_stories_action":
-                stories = fetch_top_stories(rep_coins)
-                st.session_state.messages.append({"role": "assistant", "content": "\n".join(stories)})
-            elif action == "what_if_controls":
-                st.session_state.awaiting_controls = "what_if_controls"
-                st.session_state.what_if_step = 1
-                st.session_state.messages.append({"role": "assistant", "content": "Which coin for the trade?"})
-            else:
-                st.session_state.awaiting_controls = action
-                st.session_state.messages.append({"role": "assistant", "content": f"Select inputs for **{user_text}** below."})
-        elif user_text == "Show Overall Winner":
-            leaderboard, report = get_model_leaderboard(all_metrics_df)
-            st.session_state.messages.append({"role": "assistant", "content": report})
-            st.session_state.messages.append({"role": "assistant", "content": leaderboard, "type": "df"})
-
-# --- UI DISPLAY ---
-for i, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"]):
-        if msg.get("type") == "df": st.dataframe(msg["content"], use_container_width=True)
-        else: st.markdown(msg["content"])
-        if msg.get("buttons"):
+        if "buttons" in m:
             cols = st.columns(3)
-            for j, btn in enumerate(msg["buttons"]):
-                cols[j % 3].button(btn, key=f"b_{i}_{j}", on_click=process_user_input, args=(btn,))
+            for j, btn in enumerate(m["buttons"]):
+                cols[j % 3].button(btn, key=f"b_{i}_{j}", on_click=process_btn, args=(btn,))
 
-if prompt := st.chat_input("Type your question..."):
-    process_user_input(prompt=prompt)
-
-# --- DYNAMIC CONTROL PANEL ---
-if st.session_state.awaiting_controls:
+# --- 6. DYNAMIC CONTROLS ---
+if st.session_state.active_tool:
     st.markdown("---")
-    ctrl = st.session_state.awaiting_controls
-    if ctrl == "trend_controls":
-        c = st.selectbox("Select Coin", all_coins)
-        if st.button("Generate Chart"):
-            fig, insight = plot_trend_chart(main_df, c)
-            st.session_state.messages.append({"role": "assistant", "content": fig, "type": "plot"})
-            st.session_state.awaiting_controls = None
+    tool = st.session_state.active_tool
+    
+    if tool == "Show Price Chart":
+        c = st.selectbox("Select Coin", data["all_coins"])
+        if st.button("Generate Trend"):
+            fig, insight = plot_trend_chart(data["main_df"], c)
+            add_msg("assistant", fig, "plot")
+            add_msg("assistant", insight)
+            st.session_state.active_tool = None
             st.rerun()
-    elif ctrl == "high_low_controls":
-        c = st.selectbox("Select Coin", rep_coins)
-        m = st.selectbox("Select Model", ["ARIMA", "PROPHET", "LSTM", "RF", "XGB"])
-        if st.button("Run Prediction"):
-            h, l, insight = get_forecasted_high_low(m, c)
-            st.session_state.messages.append({"role": "assistant", "content": f"Results for {c}: High: ${h['price']:.2f}, Low: ${l['price']:.2f}"})
-            st.session_state.awaiting_controls = None
+
+    elif tool == "Predict High/Low":
+        c = st.selectbox("Currency", data["rep_coins"])
+        m = st.selectbox("Model", ["LSTM", "XGB", "ARIMA", "PROPHET"])
+        if st.button("Run Forecast"):
+            h, l = get_forecast_logic(m, c)
+            if h:
+                res = f"**Forecast for {c} ({m}):**\n- High: `${h['p']:,.2f}` on {h['d']}\n- Low: `${l['p']:,.2f}` on {l['d']}"
+                add_msg("assistant", res)
+            else: add_msg("assistant", "Data not found.")
+            st.session_state.active_tool = None
             st.rerun()
+
+    elif tool == "Find Correlations":
+        c = st.selectbox("Target Coin", data["rep_coins"])
+        if st.button("Calculate Correlations"):
+            add_msg("assistant", get_top_correlations(data["top_corr_df"], c))
+            st.session_state.active_tool = None
+            st.rerun()
+
+    elif tool == "Analyze Potential Profit":
+        c = st.selectbox("Choose Asset", data["all_coins"])
+        q = st.number_input("Quantity", min_value=0.1, value=1.0)
+        t = st.number_input("Target Sell Price ($)", value=data["latest_prices"].get(c, 1.0) * 1.1)
+        if st.button("Calculate Profit"):
+            curr = data["latest_prices"].get(c, 0)
+            profit = (t - curr) * q
+            add_msg("assistant", f"Buying **{q} {c}** now and selling at **${t:,.2f}** would result in a profit/loss of: **${profit:,.2f}**")
+            st.session_state.active_tool = None
+            st.rerun()
+
+if prompt := st.chat_input("Ask a question..."):
+    add_msg("user", prompt)
+    add_msg("assistant", "I'm focusing on the menu options right now. Please select one of the analysis buttons to proceed!")
+    st.rerun()
