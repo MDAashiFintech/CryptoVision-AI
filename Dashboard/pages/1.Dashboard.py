@@ -60,7 +60,14 @@ cols = st.columns(len(representatives))
 for i, coin in enumerate(live_prices):
     price = f"${coin['price']:,.2f}"
     change = coin["change"]
-    delta = f"{change:+.2f}%"
+    # Ensure 'change' is a number before formatting
+try:
+    # Convert to float just in case it's a string
+    val = float(change)
+    delta = f"{val:+.2f}%"
+except (ValueError, TypeError, NameError):
+    # If data is missing, show N/A instead of crashing
+    delta = "N/A"
     cols[i].markdown(
         f"""<div style='background:#f4f6f8; border-radius:12px; padding:16px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08)'>
             <h3 style='color:#2E86C1'>{coin['name']}</h3>
