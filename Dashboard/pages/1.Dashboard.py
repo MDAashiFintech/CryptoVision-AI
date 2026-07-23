@@ -18,7 +18,7 @@ st.markdown(
 st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # --- LOAD REPRESENTATIVES ---
-rep_df = pd.read_csv("assets/representative_coins.csv")
+rep_df = pd.read_csv("Dashboard/assets/representative_coins.csv")
 representatives = rep_df["Representative_Coin"].tolist()
 rep_names = {
     "BETH-USD": "Beacon ETH",
