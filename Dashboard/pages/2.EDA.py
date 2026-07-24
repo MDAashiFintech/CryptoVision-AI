@@ -64,6 +64,8 @@ with st.sidebar:
 
     if selected == "Home": st.switch_page("app.py")
     if selected == "Market Dashboard": st.switch_page("pages/1.Dashboard.py")
+    if selected == "Data Insights": st.switch_page("pages/2.EDA.py")
+    if selected == "Correlation & Groups": st.switch_page("pages/3.Group_&_Correlation.py")
     if selected == "AI Forecasting": st.switch_page("pages/4.Forecast.py")
     if selected == "Model Analytics": st.switch_page("pages/5.Model_Comparison.py")
     if selected == "Chatbot": st.switch_page("pages/6.Chatbot.py")
