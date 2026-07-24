@@ -1,138 +1,148 @@
 import streamlit as st
-import pandas as pd
-import feedparser
-import re
-from utils import load_all_data  # Using the centralized engine
+import base64
+import os
 
-# --- PAGE SETUP ---
-st.set_page_config(page_title="Crypto Top Stories", layout="wide", page_icon="📰")
-
-st.markdown(
-    "<h1 style='text-align:center;color:#2E86C1'>📰 Crypto Top Stories</h1>",
-    unsafe_allow_html=True,
+# --- PAGE CONFIGURATION ---
+st.set_page_config(
+    page_title="CryptoVision AI | Fintech Intelligence",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# --- LOAD DATA VIA UTILS ---
-try:
-    data_dict = load_all_data()
-    representatives = data_dict["rep_coins"]
-    all_coins = data_dict["all_coins"]
-except Exception as e:
-    st.error(f"Error loading data: {e}")
-    st.stop()
+# --- CUSTOM CSS FOR PROFESSIONAL LOOK ---
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f8f9fa;
+    }
+    .stHeader {
+        background: transparent;
+    }
+    .gradient-text {
+        background: -webkit-linear-gradient(left, #1E3A8A, #3B82F6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        font-size: 3rem;
+    }
+    .hero-container {
+        padding: 2rem 0rem;
+        text-align: center;
+    }
+    .feature-card {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        border-left: 5px solid #3B82F6;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        height: 250px;
+        transition: transform 0.2s;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+    .tech-tag {
+        display: inline-block;
+        background: #E0E7FF;
+        color: #1E40AF;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin: 2px;
+        font-weight: 600;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Process coin names for filtering
-all_coins_upper = sorted(set([c.split("-")[0].upper() for c in all_coins]))
-rep_coins_simple = [c.split("-")[0].upper() for c in representatives]
+# --- HERO SECTION ---
+st.markdown("""
+    <div class="hero-container">
+        <h1 class="gradient-text">CryptoVision AI</h1>
+        <p style='color: #4B5563; font-size: 1.2rem; font-weight: 400;'>
+            Next-Generation Fintech Intelligence & Predictive Modeling Platform
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
-# RSS feeds to parse
-rss_urls = [
-    "https://cryptonews.com/news/feed",
-    "https://www.coindesk.com/arc/outboundfeeds/rss/",
-    "https://news.bitcoin.com/feed/",
-]
+st.markdown("---")
 
-# UI: filter selection
-st.write("Filter news by cryptocurrency scope:")
-selected_filter = st.radio(
-    "",
-    ["All 30 Cryptocurrencies", "4 Representatives"],
-    horizontal=True,
-    index=0,
-    help="Select which coins to filter news by",
-)
+# --- CORE VALUE PROPOSITION ---
+col1, col2 = st.columns([3, 2], gap="large")
 
-filter_coins = (
-    rep_coins_simple if selected_filter == "4 Representatives" else all_coins_upper
-)
+with col1:
+    st.markdown("### 🧠 Intelligent Market Forecasting")
+    st.write("""
+        **CryptoVision AI** is a professional-grade fintech platform that bridges the gap between raw blockchain data and actionable financial intelligence. 
+        By utilizing a high-performance Machine Learning pipeline, the system analyzes market archetypes, volatility patterns, and price momentum across 30+ major assets.
+    """)
+    
+    st.write("""
+        This platform demonstrates the end-to-end deployment of **Deep Learning (LSTM)** and **Ensemble methods**, 
+        designed for low-latency inference and high-accuracy forecasting in volatile environments.
+    """)
 
-# UI: slider for number of news articles
-max_display = st.slider(
-    "Number of news articles to display:", min_value=1, max_value=20, value=8, step=1
-)
+    st.markdown("#### 🛠️ Tech Stack & Engineering")
+    tags = ["Python", "TensorFlow", "Scikit-Learn", "Streamlit", "XGBoost", "Prophet", "Plotly", "REST APIs", "PCA"]
+    tag_html = "".join([f'<span class="tech-tag">{t}</span>' for t in tags])
+    st.markdown(tag_html, unsafe_allow_html=True)
 
-# Cache news fetch for 10 minutes
-@st.cache_data(ttl=600)
-def fetch_news(filter_coins):
-    entries = []
-    for url in rss_urls:
-        feed = feedparser.parse(url)
-        for entry in feed.entries:
-            combined_text = (entry.title + " " + entry.get("summary", "")).upper()
-            if any(coin in combined_text for coin in filter_coins):
-                image_url = None
-                # extract image using multiple strategies
-                if "media_content" in entry:
-                    mc = entry.media_content
-                    if isinstance(mc, list) and len(mc) > 0 and "url" in mc[0]:
-                        image_url = mc[0]["url"]
-                    elif isinstance(mc, dict) and "url" in mc:
-                        image_url = mc["url"]
-                elif "media_thumbnail" in entry:
-                    mt = entry.media_thumbnail
-                    if isinstance(mt, list) and len(mt) > 0 and "url" in mt[0]:
-                        image_url = mt[0]["url"]
-                elif "links" in entry:
-                    for link in entry.links:
-                        if link.get("type", "").startswith("image"):
-                            image_url = link["href"]
-                            break
-                if not image_url:
-                    matches = re.findall(r'<img[^>]+src="([^">]+)"', entry.get("summary", ""))
-                    if matches:
-                        image_url = matches[0]
-                if not image_url:
-                    image_url = "https://cryptologos.cc/logos/all-crypto-logos.png"
-                
-                summary = entry.get("summary", "")
-                summary = re.sub(r"The post .+? appeared first on .+?(\.|\.\.\.|!| )*", "", summary).strip()
-                if len(summary) > 220:
-                    summary = summary[:220] + "..."
-                
-                entries.append({
-                    "title": entry.title,
-                    "link": entry.link,
-                    "published": entry.get("published", "No date"),
-                    "summary": summary,
-                    "image": image_url,
-                })
-    return entries
+with col2:
+    # Professional image related to data/tech
+    st.image(
+        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
+        caption="Real-time Data Processing & Prediction Engine",
+    )
 
-news = fetch_news(filter_coins)
+st.markdown("<br>", unsafe_allow_html=True)
 
-# UI styling for cards
-card_style = """
-    background-color: #f9fafb;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(44,62,80,0.07);
-    padding: 15px 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-"""
-scrollable_div = "<div style='max-height:480px; overflow-y:auto; padding:5px'>"
+# --- PROFESSIONAL FEATURE CARDS ---
+st.markdown("### 🚀 Platform Capabilities")
+c1, c2, c3 = st.columns(3)
 
-st.markdown(scrollable_div, unsafe_allow_html=True)
+with c1:
+    st.markdown("""
+        <div class="feature-card">
+            <h4 style="color: #1E3A8A;">🤖 Natural Language Querying</h4>
+            <p style="color: #4B5563; font-size: 0.9rem;">
+                Integrated AI Assistant designed to process complex financial queries. 
+                Move from static menus to natural language exploration of correlations, trends, and forecasts.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-if news:
-    for article in news[:max_display]:
-        st.markdown(
-            f"""
-            <div style="{card_style}">
-                <img src="{article['image']}" style="width:110px; height:75px; object-fit:cover; border-radius:8px; margin-right:16px;">
-                <div style="flex:1;">
-                    <div style="font-size:1.05em; font-weight:bold; margin-bottom:6px;">{article['title']}</div>
-                    <div style="color:#444; font-size:0.95em; margin-bottom:8px;">{article['summary']}</div>
-                    <a href="{article['link']}" target="_blank" style="color:#2E86C1; font-weight:600; text-decoration:none;">
-                        Read More &rarr;
-                    </a>
-                    <div style="font-size:0.85em; color:#888; margin-top:5px;">{article['published']}</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-else:
-    st.info("No recent news articles found for the selected filter.")
+with c2:
+    st.markdown("""
+        <div class="feature-card">
+            <h4 style="color: #1E3A8A;">📈 Multi-Model Architectures</h4>
+            <p style="color: #4B5563; font-size: 0.9rem;">
+                Comparison engine featuring <b>LSTM Neural Networks</b> for sequential data, 
+                <b>XGBoost</b> for trend detection, and <b>Prophet</b> for seasonal decomposition.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
+with c3:
+    st.markdown("""
+        <div class="feature-card">
+            <h4 style="color: #1E3A8A;">🏆 Performance Benchmarking</h4>
+            <p style="color: #4B5563; font-size: 0.9rem;">
+                Objective statistical evaluation using <b>MAPE, RMSE, and R²</b> metrics. 
+                Identify the optimal model for specific asset classes through rigorous backtesting.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# --- FOOTER / AUTHOR ---
+st.markdown("---")
+footer_col1, footer_col2 = st.columns(2)
+with footer_col1:
+    st.markdown(f"**Lead AI Engineer:** MD Aashif Ansari")
+    st.markdown("*MSc Applied AI & Data Science*")
+with footer_col2:
+    st.markdown("<div style='text-align: right;'>© 2024 CryptoVision AI | Deployed on Streamlit Cloud</div>", unsafe_allow_html=True)
+
+# --- SIDEBAR MESSAGE ---
+st.sidebar.info("Navigate via the sidebar to explore the platform's analytical tools.")
