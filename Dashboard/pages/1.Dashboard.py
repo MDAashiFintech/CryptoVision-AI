@@ -37,6 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2. THE UNIFIED NAVIGATION SIDEBAR (Fixed with 9 items) ---
+# --- THE PERMANENT NAVIGATION FIX ---
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; padding-bottom: 20px;">
@@ -45,12 +46,12 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    # Master Navigation List
     selected = option_menu(
         menu_title=None,
         options=["Home", "Market Terminal", "Data Insights", "Correlation & Groups", "AI Forecasting", "Model Analytics", "Chatbot", "Market News", "FAQ"],
         icons=["house", "grid-1x2", "search", "diagram-3", "graph-up", "award", "robot", "rss", "info-circle"],
-        default_index=1,
+        # Change default_index for each page: Home=0, Dashboard=1, EDA=2, Group&Corr=3, etc.
+        default_index=1, 
         styles={
             "container": {"background-color": "transparent"},
             "nav-link": {"color": "#cbd5e1", "font-size": "13px", "text-align": "left", "margin":"5px"},
@@ -58,15 +59,25 @@ with st.sidebar:
         }
     )
 
-    # Navigation Logic
-    if selected == "Home": st.switch_page("app.py")
-    if selected == "Data Insights": st.switch_page("pages/2.EDA.py")
-    if selected == "Correlation & Groups": st.switch_page("pages/3.Group_&_Correlation.py")
-    if selected == "AI Forecasting": st.switch_page("pages/4.Forecast.py")
-    if selected == "Model Analytics": st.switch_page("pages/5.Model_Comparison.py")
-    if selected == "Chatbot": st.switch_page("pages/6.Chatbot.py")
-    if selected == "Market News": st.switch_page("pages/7.Top_Stories.py")
-    if selected == "FAQ": st.switch_page("pages/FAQ.py")
+    # EXACT PATH LOGIC (Do not change filenames)
+    if selected == "Home":
+        st.switch_page("app.py")
+    elif selected == "Market Terminal":
+        st.switch_page("pages/1.Dashboard.py")
+    elif selected == "Data Insights":
+        st.switch_page("pages/2.EDA.py")
+    elif selected == "Correlation & Groups":
+        st.switch_page("pages/3.Group_&_Correlation.py") # Ensure this matches the file name EXACTLY
+    elif selected == "AI Forecasting":
+        st.switch_page("pages/4.Forecast.py")
+    elif selected == "Model Analytics":
+        st.switch_page("pages/5.Model_Comparison.py")
+    elif selected == "Chatbot":
+        st.switch_page("pages/6.Chatbot.py")
+    elif selected == "Market News":
+        st.switch_page("pages/7.Top_Stories.py")
+    elif selected == "FAQ":
+        st.switch_page("pages/FAQ.py")
 
 # --- 3. DATA LOADING & LOGIC ---
 @st.cache_data
