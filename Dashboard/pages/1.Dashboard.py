@@ -10,7 +10,6 @@ import numpy as np
 # --- 1. PAGE CONFIG & GLOBAL THEME ---
 st.set_page_config(page_title="Market Terminal | CryptoVision AI", layout="wide")
 
-# This CSS hides the dull dots and forces the institutional dark theme
 st.markdown("""
     <style>
     /* HIDE DEFAULT NAV */
@@ -37,7 +36,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE UNIFIED NAVIGATION SIDEBAR ---
+# --- 2. THE UNIFIED NAVIGATION SIDEBAR (Fixed with 9 items) ---
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; padding-bottom: 20px;">
@@ -46,15 +45,15 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    # Note: 'default_index=1' because this is the 2nd page in our list
+    # Master Navigation List
     selected = option_menu(
         menu_title=None,
-        options=["Home", "Market Dashboard", "Data Insights", "AI Forecasting", "Model Analytics", "Chatbot", "Market News", "FAQ"],
-        icons=["house", "grid-1x2", "search", "graph-up", "award", "robot", "rss", "info-circle"],
+        options=["Home", "Market Terminal", "Data Insights", "Correlation & Groups", "AI Forecasting", "Model Analytics", "Chatbot", "Market News", "FAQ"],
+        icons=["house", "grid-1x2", "search", "diagram-3", "graph-up", "award", "robot", "rss", "info-circle"],
         default_index=1,
         styles={
             "container": {"background-color": "transparent"},
-            "nav-link": {"color": "#cbd5e1", "font-size": "14px", "text-align": "left", "margin":"5px"},
+            "nav-link": {"color": "#cbd5e1", "font-size": "13px", "text-align": "left", "margin":"5px"},
             "nav-link-selected": {"background-color": "#2563eb", "color": "white"},
         }
     )
@@ -62,6 +61,7 @@ with st.sidebar:
     # Navigation Logic
     if selected == "Home": st.switch_page("app.py")
     if selected == "Data Insights": st.switch_page("pages/2.EDA.py")
+    if selected == "Correlation & Groups": st.switch_page("pages/3.Group_&_Correlation.py")
     if selected == "AI Forecasting": st.switch_page("pages/4.Forecast.py")
     if selected == "Model Analytics": st.switch_page("pages/5.Model_Comparison.py")
     if selected == "Chatbot": st.switch_page("pages/6.Chatbot.py")
