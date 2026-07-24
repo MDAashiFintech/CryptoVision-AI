@@ -1,148 +1,153 @@
 import streamlit as st
+from streamlit_option_menu import option_menu
 import base64
-import os
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="CryptoVision AI | Fintech Intelligence",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# --- PAGE CONFIG ---
+st.set_page_config(page_title="CryptoVision AI", page_icon="📈", layout="wide")
 
-# --- CUSTOM CSS FOR PROFESSIONAL LOOK ---
+# --- PREMIUM CSS INJECTION ---
 st.markdown("""
     <style>
-    .main {
-        background-color: #f8f9fa;
+    /* Hide the default sidebar dots and navigation */
+    div[data-testid="stSidebarNav"] {display: none;}
+    
+    /* Modern Font & Background */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+    html, body, [class*="css"]  {
+        font-family: 'Inter', sans-serif;
     }
-    .stHeader {
-        background: transparent;
+
+    /* Professional Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a !important;
+        border-right: 1px solid #1e293b;
     }
-    .gradient-text {
-        background: -webkit-linear-gradient(left, #1E3A8A, #3B82F6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800;
-        font-size: 3rem;
-    }
-    .hero-container {
-        padding: 2rem 0rem;
-        text-align: center;
-    }
-    .feature-card {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        border-left: 5px solid #3B82F6;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        height: 250px;
-        transition: transform 0.2s;
-    }
-    .feature-card:hover {
-        transform: translateY(-5px);
-    }
-    .tech-tag {
-        display: inline-block;
-        background: #E0E7FF;
-        color: #1E40AF;
-        padding: 2px 10px;
+
+    /* Main Hero Styling */
+    .hero-box {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 3rem;
         border-radius: 20px;
-        font-size: 0.8rem;
-        margin: 2px;
-        font-weight: 600;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Glassmorphism Cards */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+    }
+    .glass-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #3b82f6;
+    }
+
+    /* Custom Tech Tags */
+    .badge {
+        background: #1e293b;
+        color: #3b82f6;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        margin-right: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HERO SECTION ---
-st.markdown("""
-    <div class="hero-container">
-        <h1 class="gradient-text">CryptoVision AI</h1>
-        <p style='color: #4B5563; font-size: 1.2rem; font-weight: 400;'>
-            Next-Generation Fintech Intelligence & Predictive Modeling Platform
-        </p>
-    </div>
-""", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# --- CORE VALUE PROPOSITION ---
-col1, col2 = st.columns([3, 2], gap="large")
-
-with col1:
-    st.markdown("### 🧠 Intelligent Market Forecasting")
-    st.write("""
-        **CryptoVision AI** is a professional-grade fintech platform that bridges the gap between raw blockchain data and actionable financial intelligence. 
-        By utilizing a high-performance Machine Learning pipeline, the system analyzes market archetypes, volatility patterns, and price momentum across 30+ major assets.
-    """)
+# --- CUSTOM SIDEBAR NAVIGATION ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2091/2091665.png", width=80) # Modern AI Icon
+    st.markdown("<h2 style='color: white; text-align: center;'>CryptoVision</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; text-align: center; font-size: 0.8rem;'>Fintech Prediction Engine v2.0</p>", unsafe_allow_html=True)
+    st.write("---")
     
-    st.write("""
-        This platform demonstrates the end-to-end deployment of **Deep Learning (LSTM)** and **Ensemble methods**, 
-        designed for low-latency inference and high-accuracy forecasting in volatile environments.
-    """)
-
-    st.markdown("#### 🛠️ Tech Stack & Engineering")
-    tags = ["Python", "TensorFlow", "Scikit-Learn", "Streamlit", "XGBoost", "Prophet", "Plotly", "REST APIs", "PCA"]
-    tag_html = "".join([f'<span class="tech-tag">{t}</span>' for t in tags])
-    st.markdown(tag_html, unsafe_allow_html=True)
-
-with col2:
-    # Professional image related to data/tech
-    st.image(
-        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
-        caption="Real-time Data Processing & Prediction Engine",
+    # This is the "Option Menu" that makes it look like a real WebApp
+    selected = option_menu(
+        menu_title=None,
+        options=["Home", "Market Dashboard", "Data Insights", "AI Forecasting", "Model Analytics", "Chatbot", "Market News", "FAQ"],
+        icons=["house", "speedometer2", "search", "graph-up-arrow", "trophy", "robot", "newspaper", "question-circle"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "0!important", "background-color": "transparent"},
+            "icon": {"color": "#3b82f6", "font-size": "18px"}, 
+            "nav-link": {"color": "white", "font-size": "14px", "text-align": "left", "margin":"0px", "--hover-color": "#1e293b"},
+            "nav-link-selected": {"background-color": "#3b82f6"},
+        }
     )
+    
+    # NAVIGATION LOGIC
+    # These paths must match your actual filenames in the pages folder
+    if selected == "Market Dashboard": st.switch_page("pages/1.Dashboard.py")
+    if selected == "Data Insights": st.switch_page("pages/2.EDA.py")
+    if selected == "AI Forecasting": st.switch_page("pages/4.Forecast.py")
+    if selected == "Model Analytics": st.switch_page("pages/5.Model_Comparison.py")
+    if selected == "Chatbot": st.switch_page("pages/6.Chatbot.py")
+    if selected == "Market News": st.switch_page("pages/7.Top_Stories.py")
+    if selected == "FAQ": st.switch_page("pages/FAQ.py")
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# --- PROFESSIONAL FEATURE CARDS ---
-st.markdown("### 🚀 Platform Capabilities")
-c1, c2, c3 = st.columns(3)
-
-with c1:
+# --- HOME PAGE CONTENT ---
+if selected == "Home":
     st.markdown("""
-        <div class="feature-card">
-            <h4 style="color: #1E3A8A;">🤖 Natural Language Querying</h4>
-            <p style="color: #4B5563; font-size: 0.9rem;">
-                Integrated AI Assistant designed to process complex financial queries. 
-                Move from static menus to natural language exploration of correlations, trends, and forecasts.
-            </p>
+        <div class="hero-box">
+            <h1 style='font-weight: 800; font-size: 3.5rem;'>CRYPTOVISION AI</h1>
+            <p style='font-size: 1.2rem; opacity: 0.9;'>Advanced Deep Learning & Market Intelligence for the Digital Asset Economy</p>
         </div>
     """, unsafe_allow_html=True)
 
-with c2:
-    st.markdown("""
-        <div class="feature-card">
-            <h4 style="color: #1E3A8A;">📈 Multi-Model Architectures</h4>
-            <p style="color: #4B5563; font-size: 0.9rem;">
-                Comparison engine featuring <b>LSTM Neural Networks</b> for sequential data, 
-                <b>XGBoost</b> for trend detection, and <b>Prophet</b> for seasonal decomposition.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    c1, c2 = st.columns([3, 2], gap="large")
+    
+    with c1:
+        st.markdown("### 🦾 The Prediction Engine")
+        st.write("""
+            Welcome to **CryptoVision AI**, a state-of-the-art analytics platform designed to solve the complexity of cryptocurrency market volatility. 
+            Our system processes millions of data points across 30+ assets to provide real-time forecasting and behavioral clustering.
+        """)
+        
+        st.markdown("""
+            <div style="margin-top: 20px;">
+                <span class="badge">DEEP LEARNING</span>
+                <span class="badge">FINTECH</span>
+                <span class="badge">REAL-TIME INFERENCE</span>
+                <span class="badge">SCALABLE PIPELINE</span>
+            </div>
+        """, unsafe_allow_html=True)
 
-with c3:
-    st.markdown("""
-        <div class="feature-card">
-            <h4 style="color: #1E3A8A;">🏆 Performance Benchmarking</h4>
-            <p style="color: #4B5563; font-size: 0.9rem;">
-                Objective statistical evaluation using <b>MAPE, RMSE, and R²</b> metrics. 
-                Identify the optimal model for specific asset classes through rigorous backtesting.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    with c2:
+        st.image("https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80", use_container_width=True)
 
-st.markdown("<br><br>", unsafe_allow_html=True)
+    st.write("---")
+    
+    # Capability Cards
+    st.markdown("### 🚀 Platform Capabilities")
+    cols = st.columns(3)
+    
+    with cols[0]:
+        st.markdown("""<div class="glass-card">
+            <h4 style="color: #3b82f6;">📉 Predictive Logic</h4>
+            <p style="font-size: 0.9rem; color: #4b5563;">Leveraging LSTM Neural Networks and XGBoost for trend classification with sub-10% MAPE.</p>
+        </div>""", unsafe_allow_html=True)
+        
+    with cols[1]:
+        st.markdown("""<div class="glass-card">
+            <h4 style="color: #3b82f6;">🤖 Conversational AI</h4>
+            <p style="font-size: 0.9rem; color: #4b5563;">Proprietary NLP engine allowing for natural language queries of complex financial datasets.</p>
+        </div>""", unsafe_allow_html=True)
+        
+    with cols[2]:
+        st.markdown("""<div class="glass-card">
+            <h4 style="color: #3b82f6;">🧬 PCA Clustering</h4>
+            <p style="font-size: 0.9rem; color: #4b5563;">Automated asset archetyping using Principal Component Analysis for portfolio diversification.</p>
+        </div>""", unsafe_allow_html=True)
 
-# --- FOOTER / AUTHOR ---
-st.markdown("---")
-footer_col1, footer_col2 = st.columns(2)
-with footer_col1:
-    st.markdown(f"**Lead AI Engineer:** MD Aashif Ansari")
-    st.markdown("*MSc Applied AI & Data Science*")
-with footer_col2:
-    st.markdown("<div style='text-align: right;'>© 2024 CryptoVision AI | Deployed on Streamlit Cloud</div>", unsafe_allow_html=True)
-
-# --- SIDEBAR MESSAGE ---
-st.sidebar.info("Navigate via the sidebar to explore the platform's analytical tools.")
+    # Professional Footer
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 0.8rem;'>Lead Developer: MD Aashif Ansari • MSc Applied AI & Data Science</div>", unsafe_allow_html=True)

@@ -11,3 +11,4 @@ feedparser
 requests
 statsmodels
 seaborn
+streamlit-option-menu
