@@ -67,7 +67,7 @@ with st.sidebar:
     elif selected == "Data Insights":
         st.switch_page("pages/2.EDA.py")
     elif selected == "Correlation & Groups":
-        st.switch_page("pages/3.Group_&_Correlation.py") # Ensure this matches the file name EXACTLY
+        st.switch_page("pages/3.Correlation.py") # Ensure this matches the file name EXACTLY
     elif selected == "AI Forecasting":
         st.switch_page("pages/4.Forecast.py")
     elif selected == "Model Analytics":
