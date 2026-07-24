@@ -1,135 +1,138 @@
-# app.py (Your main Welcome Page)
-
 import streamlit as st
-import base64
-import os
+import pandas as pd
+import feedparser
+import re
+from utils import load_all_data  # Using the centralized engine
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="Crypto Analytics Hub | Home",
-    page_icon="💸",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# --- PAGE SETUP ---
+st.set_page_config(page_title="Crypto Top Stories", layout="wide", page_icon="📰")
 
-# --- STYLING ---
-# You can add custom CSS to a file named style.css in your root directory
-# For now, we'll use markdown for some inline styling.
-
-# --- WELCOME PAGE LAYOUT ---
-
-
-# A little function to load images as base64
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-
-# Main header with a cool gradient text effect (optional, but looks nice)
 st.markdown(
-    """
-    <style>
-    .gradient-text {
-        background: -webkit-linear-gradient(left, #00C4FF, #33FF7A);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: bold;
-    }
-    </style>
-    <div style="text-align: center;">
-        <h1>💸 Welcome to the <span class="gradient-text">Crypto Analytics Hub!</span></h1>
-    </div>
-""",
+    "<h1 style='text-align:center;color:#2E86C1'>📰 Crypto Top Stories</h1>",
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    "<h4 style='text-align: center; color: #888;'>Your All-in-One Crypto Analysis and Forecasting Tool</h4>",
-    unsafe_allow_html=True,
+# --- LOAD DATA VIA UTILS ---
+try:
+    data_dict = load_all_data()
+    representatives = data_dict["rep_coins"]
+    all_coins = data_dict["all_coins"]
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.stop()
+
+# Process coin names for filtering
+all_coins_upper = sorted(set([c.split("-")[0].upper() for c in all_coins]))
+rep_coins_simple = [c.split("-")[0].upper() for c in representatives]
+
+# RSS feeds to parse
+rss_urls = [
+    "https://cryptonews.com/news/feed",
+    "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    "https://news.bitcoin.com/feed/",
+]
+
+# UI: filter selection
+st.write("Filter news by cryptocurrency scope:")
+selected_filter = st.radio(
+    "",
+    ["All 30 Cryptocurrencies", "4 Representatives"],
+    horizontal=True,
+    index=0,
+    help="Select which coins to filter news by",
 )
-st.markdown("---")
 
+filter_coins = (
+    rep_coins_simple if selected_filter == "4 Representatives" else all_coins_upper
+)
 
-# --- TWO-COLUMN LAYOUT: PROJECT INFO & VISUAL ---
-col1, col2 = st.columns([3, 2], gap="large")
+# UI: slider for number of news articles
+max_display = st.slider(
+    "Number of news articles to display:", min_value=1, max_value=20, value=8, step=1
+)
 
-with col1:
-    st.header("📖 About This Project")
-    st.markdown(
-        """
-        This dashboard is a comprehensive tool developed as part of an academic assessment for **Solent University**.
-        It leverages historical cryptocurrency data and multiple machine learning models to provide deep insights,
-        accurate forecasts, and actionable analytics.
+# Cache news fetch for 10 minutes
+@st.cache_data(ttl=600)
+def fetch_news(filter_coins):
+    entries = []
+    for url in rss_urls:
+        feed = feedparser.parse(url)
+        for entry in feed.entries:
+            combined_text = (entry.title + " " + entry.get("summary", "")).upper()
+            if any(coin in combined_text for coin in filter_coins):
+                image_url = None
+                # extract image using multiple strategies
+                if "media_content" in entry:
+                    mc = entry.media_content
+                    if isinstance(mc, list) and len(mc) > 0 and "url" in mc[0]:
+                        image_url = mc[0]["url"]
+                    elif isinstance(mc, dict) and "url" in mc:
+                        image_url = mc["url"]
+                elif "media_thumbnail" in entry:
+                    mt = entry.media_thumbnail
+                    if isinstance(mt, list) and len(mt) > 0 and "url" in mt[0]:
+                        image_url = mt[0]["url"]
+                elif "links" in entry:
+                    for link in entry.links:
+                        if link.get("type", "").startswith("image"):
+                            image_url = link["href"]
+                            break
+                if not image_url:
+                    matches = re.findall(r'<img[^>]+src="([^">]+)"', entry.get("summary", ""))
+                    if matches:
+                        image_url = matches[0]
+                if not image_url:
+                    image_url = "https://cryptologos.cc/logos/all-crypto-logos.png"
+                
+                summary = entry.get("summary", "")
+                summary = re.sub(r"The post .+? appeared first on .+?(\.|\.\.\.|!| )*", "", summary).strip()
+                if len(summary) > 220:
+                    summary = summary[:220] + "..."
+                
+                entries.append({
+                    "title": entry.title,
+                    "link": entry.link,
+                    "published": entry.get("published", "No date"),
+                    "summary": summary,
+                    "image": image_url,
+                })
+    return entries
 
-        Our goal is to create an intuitive, data-driven platform that empowers users to explore market trends,
-        compare model performance, and interact with complex data through a conversational AI assistant.
-        """
-    )
+news = fetch_news(filter_coins)
 
-    st.subheader("🧑‍💻 Author")
-    st.markdown(
-        """
-        - **Aashif Ansari**
-        """
-    )
+# UI styling for cards
+card_style = """
+    background-color: #f9fafb;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(44,62,80,0.07);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+"""
+scrollable_div = "<div style='max-height:480px; overflow-y:auto; padding:5px'>"
 
-    # Solent University Logo
-    st.markdown(
-        """
-        <div style="display: flex; align-items: center; margin-top: 20px;">
-            <p style="margin-right: 10px; font-weight: bold;">University:</p>
-            <img src="https://www.solent.ac.uk/UI/images/logo-horizontal-2022.svg" alt="Solent University Logo" width="200">
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+st.markdown(scrollable_div, unsafe_allow_html=True)
 
-with col2:
-    # You can replace this URL with a local image if you prefer
-    st.image(
-        "https://images.unsplash.com/photo-1640286599025-31293a8470b8?q=80&w=1932&auto=format&fit=crop",
-        caption="Data-driven insights into the world of crypto.",
-    )
+if news:
+    for article in news[:max_display]:
+        st.markdown(
+            f"""
+            <div style="{card_style}">
+                <img src="{article['image']}" style="width:110px; height:75px; object-fit:cover; border-radius:8px; margin-right:16px;">
+                <div style="flex:1;">
+                    <div style="font-size:1.05em; font-weight:bold; margin-bottom:6px;">{article['title']}</div>
+                    <div style="color:#444; font-size:0.95em; margin-bottom:8px;">{article['summary']}</div>
+                    <a href="{article['link']}" target="_blank" style="color:#2E86C1; font-weight:600; text-decoration:none;">
+                        Read More &rarr;
+                    </a>
+                    <div style="font-size:0.85em; color:#888; margin-top:5px;">{article['published']}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+else:
+    st.info("No recent news articles found for the selected filter.")
 
-st.markdown("---")
-
-# --- FEATURE HIGHLIGHTS IN CARDS ---
-st.header("🚀 Key Features")
-feat_col1, feat_col2, feat_col3 = st.columns(3, gap="medium")
-
-with feat_col1:
-    st.markdown(
-        """
-        <div style="background-color: #f0f8ff; padding: 20px; border-radius: 10px; border: 1px solid #cce7ff; height: 100%;">
-            <h4 style="color: #007bff;">🤖 Interactive Chatbot</h4>
-            <p>Engage in a natural conversation to perform complex analyses. Ask for forecasts, correlations, and insights without navigating menus.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with feat_col2:
-    st.markdown(
-        """
-        <div style="background-color: #f0fff0; padding: 20px; border-radius: 10px; border: 1px solid #cce7cc; height: 100%;">
-            <h4 style="color: #28a745;">📈 Multi-Model Forecasting</h4>
-            <p>Leverage five distinct machine learning models (ARIMA, LSTM, Prophet, RF, XGB) to predict future price highs and lows.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with feat_col3:
-    st.markdown(
-        """
-        <div style="background-color: #fffaf0; padding: 20px; border-radius: 10px; border: 1px solid #ffe7cc; height: 100%;">
-            <h4 style="color: #fd7e14;">🏆 Model Performance Hub</h4>
-            <p>Objectively compare all forecasting models on key metrics like MAPE and RMSE to identify the best performer for your chosen cryptocurrency.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# --- CALL TO ACTION ---
-st.sidebar.success("Select a tool from the sidebar to begin analyzing!")
+st.markdown("</div>", unsafe_allow_html=True)
